@@ -123,10 +123,6 @@ class SimpleAgent(Agent):
                                      for stock in agent.asset]) + agent.free_cash
                 if i % 100 == 0:
                     print(day, agent.balance, agent.free_cash, agent.asset)
-            if agent.free_cash < 0:
-                print(agent.free_cash, '\n', agent.balance, '\n', agent.asset, '\n', portfolio, '\n',
-                      [agent.stock_prices[stock][-1] for stock in portfolio])
-                raise Exception(i)
 
 
 if __name__ == '__main__':
