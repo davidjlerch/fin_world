@@ -1,4 +1,4 @@
-import stock_price_loader as spl
+import src.stock_price_loader as spl
 from operator import itemgetter
 
 
@@ -82,47 +82,47 @@ class SimpleAgent(Agent):
         return best
 
     def trade(self, fw, d, i):
-        agent.set_stock_prices(fw.get_stock_prices(d))
+        self.set_stock_prices(fw.get_stock_prices(d))
         if i % self.trade_freq == 0:
             if i >= self.memory:
-                agent.set_criteria()
-                portfolio = agent.strategy()
-                total_balance = agent.balance
+                self.set_criteria()
+                portfolio = self.strategy()
+                total_balance = self.balance
                 # print(portfolio)
                 if i == self.memory:
                     self.free_cash -= self.expenses * self.asset_size
                     for stock in portfolio:
-                        agent.buy(stock, int(total_balance * portfolio[stock] / agent.stock_prices[stock][-1]))
+                        self.buy(stock, int(total_balance * portfolio[stock] / self.stock_prices[stock][-1]))
                 else:
-                    current_asset = agent.asset.copy()
+                    current_asset = self.asset.copy()
                     for stck2 in current_asset:
-                        if stck2 not in portfolio and stck2 in agent.asset:
+                        if stck2 not in portfolio and stck2 in self.asset:
                             self.free_cash -= self.expenses
-                            agent.sell(stck2, agent.asset[stck2])
-                            if agent.asset[stck2] == 0:
-                                agent.asset.pop(stck2)
+                            self.sell(stck2, self.asset[stck2])
+                            if self.asset[stck2] == 0:
+                                self.asset.pop(stck2)
                     for stck1 in portfolio:
-                        if stck1 not in agent.asset:
+                        if stck1 not in self.asset:
                             self.free_cash -= self.expenses
-                            agent.buy(stck1, int(total_balance * portfolio[stck1] / agent.stock_prices[stck1][-1]))
+                            self.buy(stck1, int(total_balance * portfolio[stck1] / self.stock_prices[stck1][-1]))
                         else:
-                            if int(total_balance * portfolio[stck1] / agent.stock_prices[stck1][-1]) > \
-                                    agent.asset[stck1]:
+                            if int(total_balance * portfolio[stck1] / self.stock_prices[stck1][-1]) > \
+                                    self.asset[stck1]:
                                 self.free_cash -= self.expenses
-                                agent.buy(stck1, int(total_balance * portfolio[stck1] /
-                                                     agent.stock_prices[stck1][-1]) -
-                                          agent.asset[stck1])
-                            elif int(total_balance * portfolio[stck1] / agent.stock_prices[stck1][-1]) < \
-                                    agent.asset[stck1]:
+                                self.buy(stck1, int(total_balance * portfolio[stck1] /
+                                                     self.stock_prices[stck1][-1]) -
+                                          self.asset[stck1])
+                            elif int(total_balance * portfolio[stck1] / self.stock_prices[stck1][-1]) < \
+                                    self.asset[stck1]:
                                 self.free_cash -= self.expenses
-                                agent.sell(stck1, agent.asset[stck1] - int(total_balance * portfolio[stck1] /
-                                                                           agent.stock_prices[stck1][-1] + 1))
-                                if agent.asset[stck1] == 0:
-                                    agent.asset.pop(stck1)
-                agent.balance = sum([agent.asset[stock] * agent.stock_prices[stock][-1]
-                                     for stock in agent.asset]) + agent.free_cash
+                                self.sell(stck1, self.asset[stck1] - int(total_balance * portfolio[stck1] /
+                                                                           self.stock_prices[stck1][-1] + 1))
+                                if self.asset[stck1] == 0:
+                                    self.asset.pop(stck1)
+                self.balance = sum([self.asset[stock] * self.stock_prices[stock][-1]
+                                     for stock in self.asset]) + self.free_cash
                 if i % 100 == 0:
-                    print(day, agent.balance, agent.free_cash, agent.asset)
+                    print(day, self.balance, self.free_cash, self.asset)
 
 
 if __name__ == '__main__':
@@ -135,7 +135,6 @@ if __name__ == '__main__':
         data = fin_world.tickers.tickers[stck].history_data
         if len(data.index) > data_len_max:
             data_len_max = len(data.index)
-    del stck
     it = 0
     for day in data.index:
         day = str(day)

@@ -1,6 +1,6 @@
 import yfinance as yf
 import stocksymbol as ss
-import settings
+import src.settings as settings
 import time
 from tqdm import tqdm
 
