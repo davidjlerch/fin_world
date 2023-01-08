@@ -78,7 +78,7 @@ class SimpleAgent(Agent):
         for b in best:
             best_sum += best[b]
         for b in best:
-            best[b] /= (best_sum + 1)
+            best[b] /= (best_sum + 1e-4)
         return best
 
     def trade(self, fw, d, i):
