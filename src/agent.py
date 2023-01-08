@@ -122,7 +122,7 @@ class SimpleAgent(Agent):
                 self.balance = sum([self.asset[stock] * self.stock_prices[stock][-1]
                                      for stock in self.asset]) + self.free_cash
                 if i % 100 == 0:
-                    print(day, self.balance, self.free_cash, self.asset)
+                    print(d, self.balance, self.free_cash, self.asset)
 
 
 if __name__ == '__main__':
