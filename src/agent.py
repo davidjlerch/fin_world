@@ -3,16 +3,16 @@ from operator import itemgetter
 
 
 class Agent:
-    def __init__(self):
+    def __init__(self, balance=10000, asset_size=10, memory=200, expenses=0):
         self.stocks = []
         self.criteria = {}
         self.gain = {}
         self.stock_prices = {}
-        self.balance = 10000
-        self.free_cash = 10000
-        self.asset_size = 10
-        self.memory = 200
-        self.expenses = 0
+        self.balance = balance
+        self.free_cash = balance
+        self.asset_size = asset_size
+        self.memory = memory
+        self.expenses = expenses
         self.asset = {}
 
     def buy(self, stock, amount):
@@ -55,8 +55,8 @@ class Agent:
 
 
 class SimpleAgent(Agent):
-    def __init__(self, trade_freq=1):
-        super(SimpleAgent, self).__init__()
+    def __init__(self, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1):
+        super(SimpleAgent, self).__init__(balance=balance, asset_size=asset_size, memory=memory, expenses=expenses)
         self.trade_freq = trade_freq
 
     def set_criteria(self):
@@ -127,7 +127,7 @@ class SimpleAgent(Agent):
 
 if __name__ == '__main__':
     fin_world = spl.FinWorld(mode=None, period='5y', interval='1d', indices=['SPX', 'DAX', 'TDXP'])
-    agent = SimpleAgent(trade_freq=20)
+    agent = SimpleAgent(trade_freq=20, expenses=5)
     all_stocks = fin_world.get_stocks()
     agent.set_stocks(stocks=all_stocks)
     data_len_max = 0
