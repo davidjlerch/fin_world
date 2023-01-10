@@ -1,6 +1,10 @@
-import stock_price_loader as spl
 from operator import itemgetter
 import numpy as np
+
+try:
+    import stock_price_loader as spl
+except ImportError:
+    import src.stock_price_loader as spl
 
 
 class Agent:

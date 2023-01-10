@@ -14,7 +14,7 @@ def process(q, pck):
 
 
 def main():
-    fin_world = spl.FinWorld(mode=None, period='5y', interval='1d', indices=['SPX', 'DAX', 'TDXP'])
+    fin_world = spl.FinWorld(mode=None, period='5y', interval='1d', indices=['OEX', 'DAX', 'TDXP'])
     all_stocks = fin_world.get_stocks()
     data_len_max = [0]
     for stck in all_stocks:

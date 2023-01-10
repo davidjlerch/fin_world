@@ -1,8 +1,12 @@
 import yfinance as yf
 import stocksymbol as ss
-import settings as settings
 import time
 from tqdm import tqdm
+
+try:
+    import settings as settings
+except ImportError:
+    import src.settings as settings
 
 
 class FinWorld:
@@ -10,8 +14,8 @@ class FinWorld:
         # create a settings file and store your stocksymbol api key https://stock-symbol.herokuapp.com/
         # in api_key variable
         ssy = ss.StockSymbol(settings.api_key)
+        # print(ssy.market_list)
         self.lsts = []
-        print(ssy.index_list)
         for index in indices:
             self.lsts += ssy.get_symbol_list(index=index)
         self._time = None
