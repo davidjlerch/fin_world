@@ -57,8 +57,68 @@ class Agent:
         if stock in self.asset:
             self.balance += self.asset[stock] * (self.stock_prices[stock][-1] - self.stock_prices[stock][-2])
 
-    def trade(self, fw, d, i):
-        pass
+    def spend_rest(self):
+        running = 1
+        while running:
+            running = 0
+            for stock in self.asset:
+                if self.free_cash > self.stock_prices[stock][-1]:
+                    self.buy(stock, 1)
+                    running = 1
+
+    def trade(self, d, i):
+        if i % self.trade_freq == 0:
+            if i >= self.memory:
+                self.set_criteria()
+                portfolio = self.strategy()
+                # update balance
+                self.balance = sum([self.asset[stock] * self.stock_prices[stock][-1]
+                                    for stock in self.asset]) + self.free_cash
+                # trading margin for expenses
+                total_balance = self.balance - self.expenses * self.asset_size
+                # print(portfolio)
+                if i == self.memory:
+                    # initial buy
+                    for stock in portfolio:
+                        self.buy(stock, int(total_balance * portfolio[stock] / self.stock_prices[stock][-1]))
+                else:
+                    current_asset = self.asset.copy()
+                    # if stock is removed from top list sell all
+                    for stck2 in current_asset:
+                        if stck2 not in portfolio and stck2 in self.asset:
+                            self.sell(stck2, self.asset[stck2])
+                            if self.asset[stck2] == 0:
+                                self.asset.pop(stck2)
+                    for stck1 in portfolio:
+                        goal_amount = int(total_balance * portfolio[stck1] / self.stock_prices[stck1][-1])
+                        if stck1 not in self.asset:
+                            self.buy(stck1, goal_amount)
+                        else:
+                            if goal_amount > self.asset[stck1]:
+                                self.buy(stck1, goal_amount - self.asset[stck1])
+                            elif goal_amount < self.asset[stck1]:
+                                self.sell(stck1, self.asset[stck1] - goal_amount + 1)
+                                if self.asset[stck1] == 0:
+                                    self.asset.pop(stck1)
+                self.spend_rest()
+                print(self.name, d, self.balance, self.free_cash, self.asset)
+        if self.free_cash < 0:
+            # print information for debugging
+            """
+            portfolio_sum = 0
+            check_sum = 0
+            checks = {}
+            for stock in portfolio:
+                goal_amount = int(total_balance * portfolio[stock] / self.stock_prices[stock][-1])
+                print(goal_amount, '/', self.asset[stock])
+                portfolio_sum += portfolio[stock]
+                checks[stock] = self.asset[stock] * self.stock_prices[stock][-1] / self.balance
+                check_sum += checks[stock]
+            print(portfolio_sum, check_sum)
+            print(portfolio)
+            print(checks)
+            """
+            raise ValueError('You went bankrupt.')
 
 
 class SimpleAgent(Agent):
