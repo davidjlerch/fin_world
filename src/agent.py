@@ -122,23 +122,20 @@ class Agent:
 
 
 class SimpleAgent(Agent):
-    def __init__(self, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1):
-        super(SimpleAgent, self).__init__(balance=balance, asset_size=asset_size, memory=memory, expenses=expenses)
-        self.trade_freq = trade_freq
+    def __init__(self, name, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1, ma=30):
+        super(SimpleAgent, self).__init__(name, balance=balance, asset_size=asset_size, memory=memory, expenses=expenses,
+                                          trade_freq=trade_freq)
+        self.ma = ma
 
     def set_criteria(self):
-        for stock in self.stocks:
-            if stock in self.stock_prices:
+        for stock in self.stock_prices:
                 if len(self.stock_prices[stock]) >= self.memory:
                     # print(len(self.stock_prices[stock][-30:]))
-                    self.criteria[stock] = [(sum(self.stock_prices[stock][-30:]) / len(self.stock_prices[stock][-30:]) -
-                                             sum(self.stock_prices[stock]) / len(self.stock_prices[stock])) /
-                                            self.stock_prices[stock][-1]]
+                    self.criteria[stock] = [sum(self.stock_prices[stock][-self.ma:]) / sum(self.stock_prices[stock])]
 
     def strategy(self):
-        for stock in self.stocks:
-            if stock in self.criteria:
-                self.gain[stock] = sum(self.criteria[stock])
+        for stock in self.criteria:
+            self.gain[stock] = sum(self.criteria[stock])
         best = dict(sorted(self.gain.items(), key=itemgetter(1), reverse=True)[:self.asset_size])
         # print(best)
         best_sum = 0
