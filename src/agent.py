@@ -145,48 +145,55 @@ class SimpleAgent(Agent):
             best[b] /= (best_sum + 1e-4)
         return best
 
-    def trade(self, fw, d, i):
-        self.set_stock_prices(fw.get_stock_prices(d))
-        if i % self.trade_freq == 0:
-            if i >= self.memory:
-                self.set_criteria()
-                portfolio = self.strategy()
-                total_balance = self.balance
-                # print(portfolio)
-                if i == self.memory:
-                    self.free_cash -= self.expenses * self.asset_size
-                    for stock in portfolio:
-                        self.buy(stock, int(total_balance * portfolio[stock] / self.stock_prices[stock][-1]))
-                else:
-                    current_asset = self.asset.copy()
-                    for stck2 in current_asset:
-                        if stck2 not in portfolio and stck2 in self.asset:
-                            self.free_cash -= self.expenses
-                            self.sell(stck2, self.asset[stck2])
-                            if self.asset[stck2] == 0:
-                                self.asset.pop(stck2)
-                    for stck1 in portfolio:
-                        if stck1 not in self.asset:
-                            self.free_cash -= self.expenses
-                            self.buy(stck1, int(total_balance * portfolio[stck1] / self.stock_prices[stck1][-1]))
-                        else:
-                            if int(total_balance * portfolio[stck1] / self.stock_prices[stck1][-1]) > \
-                                    self.asset[stck1]:
-                                self.free_cash -= self.expenses
-                                self.buy(stck1, int(total_balance * portfolio[stck1] /
-                                                     self.stock_prices[stck1][-1]) -
-                                          self.asset[stck1])
-                            elif int(total_balance * portfolio[stck1] / self.stock_prices[stck1][-1]) < \
-                                    self.asset[stck1]:
-                                self.free_cash -= self.expenses
-                                self.sell(stck1, self.asset[stck1] - int(total_balance * portfolio[stck1] /
-                                                                           self.stock_prices[stck1][-1] + 1))
-                                if self.asset[stck1] == 0:
-                                    self.asset.pop(stck1)
-                self.balance = sum([self.asset[stock] * self.stock_prices[stock][-1]
-                                     for stock in self.asset]) + self.free_cash
-                if i % 100 == 0:
-                    print(d, self.balance, self.free_cash, self.asset)
+
+class MATrendAgent(Agent):
+    def __init__(self, name, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1, ma=30):
+        super(MATrendAgent, self).__init__(name, balance=balance, asset_size=asset_size, memory=memory,
+                                           expenses=expenses, trade_freq=trade_freq)
+        self.ma = ma
+
+    def set_criteria(self):
+        for stock in self.stock_prices:
+            if len(self.stock_prices[stock]) >= self.memory:
+                self.criteria[stock] = [np.polyfit(np.linspace(0, self.ma-1, self.ma),
+                                                   self.stock_prices[stock][-self.ma:], 1)[1] /
+                                        np.mean(self.stock_prices[stock][-self.ma:])]
+
+    def strategy(self):
+        for stock in self.criteria:
+            self.gain[stock] = sum(self.criteria[stock])
+        best = dict(sorted(self.gain.items(), key=itemgetter(1), reverse=True)[:self.asset_size])
+        # print(best)
+        best_sum = 0
+        for b in best:
+            best_sum += best[b]
+        for b in best:
+            best[b] /= (best_sum + 1e-4)
+        return best
+
+
+class MmtAgent(Agent):
+    def __init__(self, name, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1, momentum=1):
+        super(MmtAgent, self).__init__(name, balance=balance, asset_size=asset_size, memory=memory,
+                                       expenses=expenses, trade_freq=trade_freq)
+        self.momentum = momentum
+
+    def set_criteria(self):
+        for stock in self.stock_prices:
+            if len(self.stock_prices[stock]) >= self.memory:
+                self.criteria[stock] = [self.stock_prices[stock][-1] / self.stock_prices[stock][-self.momentum]]
+
+    def strategy(self):
+        for stock in self.criteria:
+            self.gain[stock] = sum(self.criteria[stock])
+        best = dict(sorted(self.gain.items(), key=itemgetter(1), reverse=True)[:self.asset_size])
+        # print(best)
+        best_sum = 0
+        for b in best:
+            best_sum += best[b]
+        for b in best:
+            best[b] /= (best_sum + 1e-4)
+        return best
 
 
 if __name__ == '__main__':
