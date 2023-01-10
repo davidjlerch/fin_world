@@ -198,18 +198,31 @@ class MmtAgent(Agent):
 
 if __name__ == '__main__':
     fin_world = spl.FinWorld(mode=None, period='5y', interval='1d', indices=['SPX', 'DAX', 'TDXP'])
-    agent = SimpleAgent(trade_freq=20, expenses=5)
+    agent1 = SimpleAgent('Simple30', trade_freq=15, expenses=3)
+    # agent5 = SimpleAgent('Simple50', trade_freq=15, expenses=3, ma=50)
+    agent2 = MATrendAgent('Trend200', trade_freq=15, expenses=3, ma=200)
+    # agent6 = MATrendAgent('Trend50', trade_freq=15, expenses=3, ma=50)
+    # agent3 = MmtAgent('Momentum50', trade_freq=15, expenses=3, momentum=50)
+    agent4 = MmtAgent('Momentum200', trade_freq=15, expenses=3, momentum=200)
+
+    agents = [agent1, agent2, agent4]
     all_stocks = fin_world.get_stocks()
-    agent.set_stocks(stocks=all_stocks)
-    data_len_max = 0
+    for agent in agents:
+        agent.set_stocks(stocks=all_stocks)
+
+    data_len_max = [0]
     for stck in all_stocks:
         data = fin_world.tickers.tickers[stck].history_data
-        if len(data.index) > data_len_max:
-            data_len_max = len(data.index)
+        if len(data.index) > len(data_len_max):
+            data_len_max = data.index
     it = 0
     for day in data.index:
         day = str(day)
         day = day.split(' ')[0]
-        agent.trade(fin_world, day, it)
+        for agent in agents:
+            agent.set_stock_prices(fin_world.get_stock_prices(day))
+            agent.trade(day, it)
         it += 1
-    print(day, agent.balance, agent.free_cash, agent.asset)
+    for agent in agents:
+        print(agent.name, day, agent.balance, agent.free_cash, agent.asset)
+
