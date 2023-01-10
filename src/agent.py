@@ -1,9 +1,10 @@
-import src.stock_price_loader as spl
+import stock_price_loader as spl
 from operator import itemgetter
+import numpy as np
 
 
 class Agent:
-    def __init__(self, balance=10000, asset_size=10, memory=200, expenses=0):
+    def __init__(self, name, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1):
         self.stocks = []
         self.criteria = {}
         self.gain = {}
@@ -14,6 +15,8 @@ class Agent:
         self.memory = memory
         self.expenses = expenses
         self.asset = {}
+        self.trade_freq = trade_freq
+        self.name = name
 
     def buy(self, stock, amount):
         if stock not in self.asset:
@@ -21,10 +24,14 @@ class Agent:
         else:
             self.asset[stock] += amount
         self.free_cash -= self.stock_prices[stock][-1] * amount
+        self.free_cash -= self.expenses
+        self.balance -= self.expenses
 
     def sell(self, stock, amount):
         self.asset[stock] -= amount
         self.free_cash += self.stock_prices[stock][-1] * amount
+        self.free_cash -= self.expenses
+        self.balance -= self.expenses
 
     def set_criteria(self):
         pass
@@ -44,9 +51,9 @@ class Agent:
             else:
                 self.stock_prices[stock].pop(0)
                 self.stock_prices[stock].append(prices[stock])
-            self.update_balance(stock)
+            self._update_balance(stock)
 
-    def update_balance(self, stock):
+    def _update_balance(self, stock):
         if stock in self.asset:
             self.balance += self.asset[stock] * (self.stock_prices[stock][-1] - self.stock_prices[stock][-2])
 

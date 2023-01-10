@@ -1,6 +1,6 @@
 import yfinance as yf
 import stocksymbol as ss
-import src.settings as settings
+import settings as settings
 import time
 from tqdm import tqdm
 
@@ -11,6 +11,7 @@ class FinWorld:
         # in api_key variable
         ssy = ss.StockSymbol(settings.api_key)
         self.lsts = []
+        print(ssy.index_list)
         for index in indices:
             self.lsts += ssy.get_symbol_list(index=index)
         self._time = None
