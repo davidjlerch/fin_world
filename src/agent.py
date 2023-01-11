@@ -236,11 +236,11 @@ class BollingerAgent(Agent):
 
 
 if __name__ == '__main__':
-    fin_world = spl.FinWorld(mode=None, period='5y', interval='1d', indices=['SPX', 'DAX', 'TDXP'])
-    agent1 = SimpleAgent('Simple30', trade_freq=15, expenses=3)
-    # agent5 = SimpleAgent('Simple50', trade_freq=15, expenses=3, ma=50)
-    agent2 = MATrendAgent('Trend200', trade_freq=15, expenses=3, ma=200)
-    # agent6 = MATrendAgent('Trend50', trade_freq=15, expenses=3, ma=50)
+    fin_world = spl.FinWorld(mode=None, period='1y', interval='1d', indices=['SPX', 'TDXP', 'MDAX', 'SDXP', 'DAX'])         # 'OEX', 'SPX', 'TDXP', 'MDAX', 'SDXP'
+    agent1 = SimpleAgent('Simple30', trade_freq=15, expenses=0)
+    # agent2 = SimpleAgent('Simple15', trade_freq=15, expenses=3, ma=15)
+    agent3 = MATrendAgent('MATrend30', trade_freq=15, expenses=0)
+    agent2 = BollingerAgent('Bollinger30', trade_freq=15, expenses=0)
     # agent3 = MmtAgent('Momentum50', trade_freq=15, expenses=3, momentum=50)
     agent4 = MmtAgent('Momentum200', trade_freq=15, expenses=0, momentum=200)
     # agent6 = MmtAgent('Momentum200', trade_freq=5, expenses=3, momentum=200)
