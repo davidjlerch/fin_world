@@ -151,17 +151,19 @@ class SimpleAgent(Agent):
 
 
 class MATrendAgent(Agent):
-    def __init__(self, name, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1, ma=30):
+    def __init__(self, name, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1, ma=30, trend=30):
         super(MATrendAgent, self).__init__(name, balance=balance, asset_size=asset_size, memory=memory,
                                            expenses=expenses, trade_freq=trade_freq)
         self.ma = ma
+        self.trend = trend
 
     def set_criteria(self):
         for stock in self.stock_prices:
             if len(self.stock_prices[stock]) >= self.memory:
-                self.criteria[stock] = [np.polyfit(np.linspace(0, self.ma-1, self.ma),
-                                                   self.stock_prices[stock][-self.ma:], 1)[1] /
-                                        np.mean(self.stock_prices[stock][-self.ma:])]
+                self.criteria[stock] = [np.polyfit(np.linspace(0, self.trend-1, self.trend),
+                                                   self.stock_prices[stock][-self.trend:], 1)[1] /
+                                        np.mean(self.stock_prices[stock][-self.trend:]) *
+                                        sum(self.stock_prices[stock][-self.ma:]) / sum(self.stock_prices[stock])]
 
     def strategy(self):
         for stock in self.criteria:
