@@ -202,6 +202,39 @@ class MmtAgent(Agent):
         return best
 
 
+class BollingerAgent(Agent):
+    def __init__(self, name, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1, ma=20, k=2):
+        super(BollingerAgent, self).__init__(name, balance=balance, asset_size=asset_size, memory=memory,
+                                             expenses=expenses, trade_freq=trade_freq)
+        self.ma = ma
+        self.k = k
+
+    def bollinger_band(self, stock):
+        prices = self.stock_prices[stock][-self.ma:]
+        sig = np.std(prices)
+        mu = np.mean(prices)
+        return mu - self.k * sig, mu + self.k * sig, mu
+
+    def set_criteria(self):
+        for stock in self.stock_prices:
+            if len(self.stock_prices[stock]) >= self.memory:
+                boll_min, boll_max, mean = self.bollinger_band(stock)
+                self.criteria[stock] = [(boll_max - self.stock_prices[stock][-1]) /
+                                        (self.stock_prices[stock][-1] - boll_min) * self.stock_prices[stock][-1] / mean]
+
+    def strategy(self):
+        for stock in self.criteria:
+            self.gain[stock] = sum(self.criteria[stock])
+        best = dict(sorted(self.gain.items(), key=itemgetter(1), reverse=True)[:self.asset_size])
+        # print(best)
+        best_sum = 0
+        for b in best:
+            best_sum += best[b]
+        for b in best:
+            best[b] /= (best_sum + 1e-4)
+        return best
+
+
 if __name__ == '__main__':
     fin_world = spl.FinWorld(mode=None, period='5y', interval='1d', indices=['SPX', 'DAX', 'TDXP'])
     agent1 = SimpleAgent('Simple30', trade_freq=15, expenses=3)
@@ -209,9 +242,10 @@ if __name__ == '__main__':
     agent2 = MATrendAgent('Trend200', trade_freq=15, expenses=3, ma=200)
     # agent6 = MATrendAgent('Trend50', trade_freq=15, expenses=3, ma=50)
     # agent3 = MmtAgent('Momentum50', trade_freq=15, expenses=3, momentum=50)
-    agent4 = MmtAgent('Momentum200', trade_freq=15, expenses=3, momentum=200)
+    agent4 = MmtAgent('Momentum200', trade_freq=15, expenses=0, momentum=200)
+    # agent6 = MmtAgent('Momentum200', trade_freq=5, expenses=3, momentum=200)
 
-    agents = [agent1, agent2, agent4]
+    agents = [agent1, agent2, agent3, agent4]
     all_stocks = fin_world.get_stocks()
     for agent in agents:
         agent.set_stocks(stocks=all_stocks)
