@@ -66,7 +66,7 @@ class Agent:
         while running:
             running = 0
             for stock in self.asset:
-                if self.free_cash > self.stock_prices[stock][-1]:
+                if self.free_cash - self.expenses > self.stock_prices[stock][-1]:
                     self.buy(stock, 1)
                     running = 1
 
