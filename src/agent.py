@@ -187,15 +187,17 @@ class MATrendAgent(Agent):
 
 
 class MmtAgent(Agent):
-    def __init__(self, name, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1, momentum=1):
+    def __init__(self, name, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1, momentum=1, ma=1):
         super(MmtAgent, self).__init__(name, balance=balance, asset_size=asset_size, memory=memory,
                                        expenses=expenses, trade_freq=trade_freq)
         self.momentum = momentum
+        self.ma = ma
 
     def set_criteria(self):
         for stock in self.stock_prices:
-            if len(self.stock_prices[stock]) >= self.memory:
-                self.criteria[stock] = [self.stock_prices[stock][-1] / self.stock_prices[stock][-self.momentum]]
+            if len(self.stock_prices[stock]['Open']) >= self.memory:
+                self.criteria[stock] = [np.mean(self.stock_prices[stock]['Open'][-self.ma:]) /
+                                        np.mean(self.stock_prices[stock]['Open'][:(-self.momentum+self.ma)])]
 
     def strategy(self):
         for stock in self.criteria:
