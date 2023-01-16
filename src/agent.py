@@ -343,6 +343,34 @@ class ADXAgent(Agent):
         return best
 
 
+class CopyAgent(Agent):
+    def __init__(self, name, agent_list, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1):
+        super(CopyAgent, self).__init__(name, balance=balance, asset_size=asset_size, memory=memory,
+                                        expenses=expenses, trade_freq=trade_freq)
+        self.agent_list = agent_list
+
+    def set_criteria(self):
+        for agnt in self.agent_list:
+            for stock in agnt.asset:
+                if stock in self.criteria:
+                    self.criteria[stock] += [agnt.balance * agnt.asset[stock]]
+                else:
+                    self.criteria[stock] = [agnt.balance * agnt.asset[stock]]
+
+    def strategy(self):
+        for stock in self.criteria:
+            self.gain[stock] = sum(self.criteria[stock])
+        self.criteria = {}
+        best = dict(sorted(self.gain.items(), key=itemgetter(1), reverse=True)[:self.asset_size])
+        # print(best)
+        best_sum = 0
+        for b in best:
+            best_sum += best[b]
+        for b in best:
+            best[b] /= (best_sum + 1e-4)
+        return best
+
+
 if __name__ == '__main__':
     fin_world = spl.FinWorld(mode=None, period='1y', interval='1d', indices=['SPX', 'TDXP', 'MDAX', 'SDXP', 'DAX'])         # 'OEX', 'SPX', 'TDXP', 'MDAX', 'SDXP'
     agent1 = SimpleAgent('Simple30', trade_freq=15, expenses=0)
