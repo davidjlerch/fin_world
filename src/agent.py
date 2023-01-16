@@ -1,5 +1,9 @@
 from operator import itemgetter
 import numpy as np
+import pandas as pd
+import dill
+import time
+import csv
 
 try:
     import stock_price_loader as spl
@@ -27,13 +31,13 @@ class Agent:
             self.asset[stock] = amount
         else:
             self.asset[stock] += amount
-        self.free_cash -= self.stock_prices[stock][-1] * amount
+        self.free_cash -= self.stock_prices[stock]['Open'][-1] * amount
         self.free_cash -= self.expenses
         self.balance -= self.expenses
 
     def sell(self, stock, amount):
         self.asset[stock] -= amount
-        self.free_cash += self.stock_prices[stock][-1] * amount
+        self.free_cash += self.stock_prices[stock]['Open'][-1] * amount
         self.free_cash -= self.expenses
         self.balance -= self.expenses
 
@@ -49,24 +53,28 @@ class Agent:
     def set_stock_prices(self, prices):
         for stock in prices:
             if stock not in self.stock_prices:
-                self.stock_prices[stock] = [prices[stock]]
-            elif len(self.stock_prices[stock]) < self.memory:
-                self.stock_prices[stock].append(prices[stock])
-            else:
-                self.stock_prices[stock].pop(0)
-                self.stock_prices[stock].append(prices[stock])
+                self.stock_prices[stock] = {}
+            for key in prices[stock]:
+                if key not in self.stock_prices[stock]:
+                    self.stock_prices[stock][key] = [prices[stock][key]]
+                elif len(self.stock_prices[stock][key]) < self.memory:
+                    self.stock_prices[stock][key].append(prices[stock][key])
+                else:
+                    self.stock_prices[stock][key].pop(0)
+                    self.stock_prices[stock][key].append(prices[stock][key])
             self._update_balance(stock)
 
     def _update_balance(self, stock):
         if stock in self.asset:
-            self.balance += self.asset[stock] * (self.stock_prices[stock][-1] - self.stock_prices[stock][-2])
+            self.balance += self.asset[stock] * (self.stock_prices[stock]['Open'][-1] -
+                                                 self.stock_prices[stock]['Open'][-2])
 
     def spend_rest(self):
         running = 1
         while running:
             running = 0
             for stock in self.asset:
-                if self.free_cash - self.expenses > self.stock_prices[stock][-1]:
+                if self.free_cash - self.expenses > self.stock_prices[stock]['Open'][-1]:
                     self.buy(stock, 1)
                     running = 1
 
@@ -76,15 +84,15 @@ class Agent:
                 self.set_criteria()
                 portfolio = self.strategy()
                 # update balance
-                self.balance = sum([self.asset[stock] * self.stock_prices[stock][-1]
+                self.balance = sum([self.asset[stock] * self.stock_prices[stock]['Open'][-1]
                                     for stock in self.asset]) + self.free_cash
-                # trading margin for expenses
-                total_balance = self.balance - self.expenses * self.asset_size
+                # trading margin for expenses and rest for next trading day
+                total_balance = self.balance - self.expenses * (self.asset_size + 1)
                 # print(portfolio)
                 if i == self.memory:
                     # initial buy
                     for stock in portfolio:
-                        self.buy(stock, int(total_balance * portfolio[stock] / self.stock_prices[stock][-1]))
+                        self.buy(stock, int(total_balance * portfolio[stock] / self.stock_prices[stock]['Open'][-1]))
                 else:
                     current_asset = self.asset.copy()
                     # if stock is removed from top list sell all
@@ -94,7 +102,7 @@ class Agent:
                             if self.asset[stck2] == 0:
                                 self.asset.pop(stck2)
                     for stck1 in portfolio:
-                        goal_amount = int(total_balance * portfolio[stck1] / self.stock_prices[stck1][-1])
+                        goal_amount = int(total_balance * portfolio[stck1] / self.stock_prices[stck1]['Open'][-1])
                         if stck1 not in self.asset:
                             self.buy(stck1, goal_amount)
                         else:
@@ -133,9 +141,9 @@ class SimpleAgent(Agent):
 
     def set_criteria(self):
         for stock in self.stock_prices:
-                if len(self.stock_prices[stock]) >= self.memory:
-                    # print(len(self.stock_prices[stock][-30:]))
-                    self.criteria[stock] = [sum(self.stock_prices[stock][-self.ma:]) / sum(self.stock_prices[stock])]
+            if len(self.stock_prices[stock]['Open']) >= self.memory:
+                # print(len(self.stock_prices[stock]['Open'][-30:]))
+                self.criteria[stock] = [sum(self.stock_prices[stock]['Open'][-self.ma:]) / sum(self.stock_prices[stock]['Open'])]
 
     def strategy(self):
         for stock in self.criteria:
@@ -159,11 +167,11 @@ class MATrendAgent(Agent):
 
     def set_criteria(self):
         for stock in self.stock_prices:
-            if len(self.stock_prices[stock]) >= self.memory:
+            if len(self.stock_prices[stock]['Open']) >= self.memory:
                 self.criteria[stock] = [np.polyfit(np.linspace(0, self.trend-1, self.trend),
-                                                   self.stock_prices[stock][-self.trend:], 1)[1] /
-                                        np.mean(self.stock_prices[stock][-self.trend:]) *
-                                        sum(self.stock_prices[stock][-self.ma:]) / sum(self.stock_prices[stock])]
+                                                   self.stock_prices[stock]['Open'][-self.trend:], 1)[1] /
+                                        np.mean(self.stock_prices[stock]['Open'][-self.trend:]) *
+                                        sum(self.stock_prices[stock]['Open'][-self.ma:]) / sum(self.stock_prices[stock]['Open'])]
 
     def strategy(self):
         for stock in self.criteria:
@@ -210,14 +218,15 @@ class BollingerAgent(Agent):
         self.k = k
 
     def bollinger_band(self, stock):
-        prices = self.stock_prices[stock][-self.ma:]
+        prices = self.stock_prices[stock]['Open'][-self.ma:]
         sig = np.std(prices)
         mu = np.mean(prices)
         return mu - self.k * sig, mu + self.k * sig, mu
 
     def set_criteria(self):
         for stock in self.stock_prices:
-            if len(self.stock_prices[stock]) >= self.memory:
+            # print(stock, self.stock_prices[stock])
+            if len(self.stock_prices[stock]['Open']) >= self.memory:
                 boll_min, boll_max, mean = self.bollinger_band(stock)
                 self.criteria[stock] = [(boll_max - self.stock_prices[stock][-1]) /
                                         (self.stock_prices[stock][-1] - boll_min) * self.stock_prices[stock][-1] / mean]

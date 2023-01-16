@@ -52,18 +52,22 @@ class FinWorld:
     def get_stock_prices(self, day):
         stock_prices = {}
         for sbl in self.tickers.symbols:
-            for p in range(10):
-                try:
-                    stock_prices[sbl] = self.tickers.tickers[sbl].history_data.loc[day + ' 00:00:00+0' + str(p) +
-                                                                                   ':00', 'Open']
-                    break
-                except:
+            stock_prices[sbl] = {}
+            for key in ['Open', 'Close', 'High', 'Low']:
+                for p in range(10):
                     try:
-                        stock_prices[sbl] = self.tickers.tickers[sbl].history_data.loc[day + ' 00:00:00-0' +
-                                                                                       str(p) + ':00', 'Open']
+                        stock_prices[sbl][key] = self.tickers.tickers[sbl].history_data.loc[day + ' 00:00:00+0' + str(p) +
+                                                                                            ':00', key]
                         break
                     except:
-                        pass
+                        try:
+                            stock_prices[sbl][key] = self.tickers.tickers[sbl].history_data.loc[day + ' 00:00:00-0' +
+                                                                                                str(p) + ':00', key]
+                            break
+                        except:
+                            pass
+            if len(stock_prices[sbl]) < 4:
+                stock_prices.pop(sbl)
         return stock_prices
 
 

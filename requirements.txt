@@ -5,3 +5,5 @@ yfinance~=0.2.3
 stocksymbol~=0.0.5
 tqdm~=4.64.1
 setuptools~=57.0.0
+numpy~=1.24.1
+dill~=0.3.6
