@@ -230,8 +230,105 @@ class BollingerAgent(Agent):
             # print(stock, self.stock_prices[stock])
             if len(self.stock_prices[stock]['Open']) >= self.memory:
                 boll_min, boll_max, mean = self.bollinger_band(stock)
-                self.criteria[stock] = [(boll_max - self.stock_prices[stock][-1]) /
-                                        (self.stock_prices[stock][-1] - boll_min) * self.stock_prices[stock][-1] / mean]
+                self.criteria[stock] = [boll_max / boll_min * self.stock_prices[stock]['Open'][-1] / mean]
+
+    def strategy(self):
+        for stock in self.criteria:
+            self.gain[stock] = sum(self.criteria[stock])
+        best = dict(sorted(self.gain.items(), key=itemgetter(1), reverse=True)[:self.asset_size])
+        # print(best)
+        best_sum = 0
+        for b in best:
+            best_sum += best[b]
+        for b in best:
+            best[b] /= (best_sum + 1e-4)
+        return best
+
+
+class ADXAgent(Agent):
+    def __init__(self, name, source_agent, balance=10000, asset_size=10, memory=200, expenses=0, trade_freq=1,
+                 ma=1):
+        super(ADXAgent, self).__init__(name, balance=balance, asset_size=asset_size, memory=memory,
+                                       expenses=expenses, trade_freq=trade_freq)
+        self.source_agent = source_agent
+        self.ma = ma
+        self.tr = {}
+        self.dm = {}
+        self.di = {}
+        self.adx = {}
+        self.sign = {}
+
+    def set_tr(self, stock):
+        if stock not in self.tr:
+            self.tr[stock] = [np.max([self.stock_prices[stock]['High'][-1] - self.stock_prices[stock]['Low'][-1],
+                                      self.stock_prices[stock]['High'][-1] - self.stock_prices[stock]['Close'][-2],
+                                      self.stock_prices[stock]['Close'][-2] - self.stock_prices[stock]['Low'][-1]])]
+
+        else:
+            if len(self.tr[stock]) > self.ma:
+                self.tr[stock].pop(0)
+            self.tr[stock].append(np.max([self.stock_prices[stock]['High'][-1] -
+                                          self.stock_prices[stock]['Low'][-1],
+                                          self.stock_prices[stock]['High'][-1] -
+                                          self.stock_prices[stock]['Close'][-2],
+                                          self.stock_prices[stock]['Close'][-2] -
+                                          self.stock_prices[stock]['Low'][-1]]))
+
+    def set_dm(self, stock):
+        if stock not in self.dm:
+            self.dm[stock] = [[self.stock_prices[stock]['High'][-1] - self.stock_prices[stock]['High'][-2],
+                               self.stock_prices[stock]['Low'][-2] - self.stock_prices[stock]['Low'][-1]]]
+        else:
+            if len(self.dm[stock]) > self.ma:
+                self.dm[stock].pop(0)
+            self.dm[stock].append([self.stock_prices[stock]['High'][-1] - self.stock_prices[stock]['High'][-2],
+                                   self.stock_prices[stock]['Low'][-2] - self.stock_prices[stock]['Low'][-1]])
+
+    def set_di(self, stock):
+        ema = pd.DataFrame(self.dm[stock]).ewm(com=0., axis=1).mean().values[0]
+        atr = np.mean(self.tr[stock]) + 1e-8
+        di = ema / atr
+        if stock not in self.di:
+            self.di[stock] = [(di[0] - di[1]) / (di[0] + di[1] + 1e-8)]
+        else:
+            if len(self.di[stock]) > self.ma:
+                self.di[stock].pop(0)
+            self.di[stock].append((di[0] - di[1]) / (di[0] + di[1] + 1e-8))
+        return di
+
+    def set_adx(self, stock):
+        self.set_tr(stock)
+        self.set_dm(stock)
+        di = self.set_di(stock)
+        adx_new = sum(self.di[stock])
+        if stock in self.adx:
+            if self.adx[stock] < 25 < adx_new:
+                if di[0] > di[1]:
+                    self.sign[stock] = 1
+                elif di[0] < di[1]:
+                    self.sign[stock] = 0
+        self.adx[stock] = adx_new
+
+    def set_stock_prices(self, prices):
+        for stock in prices:
+            if stock not in self.stock_prices:
+                self.stock_prices[stock] = {}
+            for key in prices[stock]:
+                if key not in self.stock_prices[stock]:
+                    self.stock_prices[stock][key] = [prices[stock][key]]
+                elif len(self.stock_prices[stock][key]) < self.memory:
+                    self.stock_prices[stock][key].append(prices[stock][key])
+                else:
+                    self.stock_prices[stock][key].pop(0)
+                    self.stock_prices[stock][key].append(prices[stock][key])
+            if len(self.stock_prices[stock][key]) > 1:
+                self.set_adx(stock)
+            self._update_balance(stock)
+
+    def set_criteria(self):
+        for stock in self.source_agent.asset:
+            if stock in self.sign:
+                self.criteria[stock] = [self.sign[stock] * self.source_agent.criteria[stock][0]]
 
     def strategy(self):
         for stock in self.criteria:
