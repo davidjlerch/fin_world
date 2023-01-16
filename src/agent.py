@@ -1,9 +1,6 @@
 from operator import itemgetter
 import numpy as np
 import pandas as pd
-import dill
-import time
-import csv
 
 try:
     import stock_price_loader as spl
@@ -372,33 +369,25 @@ class CopyAgent(Agent):
 
 
 if __name__ == '__main__':
-    fin_world = spl.FinWorld(mode=None, period='1y', interval='1d', indices=['SPX', 'TDXP', 'MDAX', 'SDXP', 'DAX'])         # 'OEX', 'SPX', 'TDXP', 'MDAX', 'SDXP'
-    agent1 = SimpleAgent('Simple30', trade_freq=15, expenses=0)
-    # agent2 = SimpleAgent('Simple15', trade_freq=15, expenses=3, ma=15)
-    agent3 = MATrendAgent('MATrend30', trade_freq=15, expenses=0)
-    agent2 = BollingerAgent('Bollinger30', trade_freq=15, expenses=0)
-    # agent3 = MmtAgent('Momentum50', trade_freq=15, expenses=3, momentum=50)
-    agent4 = MmtAgent('Momentum200', trade_freq=15, expenses=0, momentum=200)
-    # agent6 = MmtAgent('Momentum200', trade_freq=5, expenses=3, momentum=200)
+    fw = spl.FinWorld(mode=None, period='1y', interval='1d', indices=['DAX', 'DJI'])
 
-    agents = [agent1, agent2, agent3, agent4]
-    all_stocks = fin_world.get_stocks()
-    for agent in agents:
-        agent.set_stocks(stocks=all_stocks)
+    agent = SimpleAgent('MySimpleAgent')
 
-    data_len_max = [0]
+    all_stocks = fw.get_stocks()
+
     for stck in all_stocks:
-        data = fin_world.tickers.tickers[stck].history_data
+        data = fw.tickers.tickers[stck].history_data
         if len(data.index) > len(data_len_max):
             data_len_max = data.index
+            data_ = data
     it = 0
-    for day in data.index:
+    for day in data_.index:
         day = str(day)
         day = day.split(' ')[0]
-        for agent in agents:
-            agent.set_stock_prices(fin_world.get_stock_prices(day))
-            agent.trade(day, it)
+        stock_prices_today = fw.get_stock_prices(day)
+        agent.set_stock_prices(stock_prices_today)
+        agent.trade(day, it)
         it += 1
-    for agent in agents:
-        print(agent.name, day, agent.balance, agent.free_cash, agent.asset)
+    print('Succeeded')
+
 
